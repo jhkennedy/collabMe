@@ -5,12 +5,13 @@ Get all your collaborators.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
 import argparse
 
 from pybtex.database import parse_file
 
 from collabme.util import custom_argparse_types as cats
-
+from collabme import name
 
 def parse_args(arg_list=None):
     parser = argparse.ArgumentParser(description=__doc__,
@@ -29,8 +30,11 @@ def parse_args(arg_list=None):
 
 def main(args):
     bib = parse_file(args.bibtex)
-    print(bib)
-
+    
+    for key, entry in six.iteritems(bib.entries):
+        for person in entry.persons['author']:
+            print(name.full(person))
+    
 
 if __name__ == '__main__':
     main(parse_args())
