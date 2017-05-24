@@ -31,15 +31,16 @@ def parse_args(arg_list=None):
 def main(args):
     bib = parse_file(args.bibtex)
   
+    #NOTE: using a dict here ensures uniqueness of full names
     all_people = {}
     for key, entry in six.iteritems(bib.entries):
         for person in entry.persons['author']:
-            all_people[name.last(person)] = person
+            all_people[name.full(person)] = person
             
-    for key in sorted(all_people):
-        full_name = name.full(all_people[key])
+    #NOTE: Sort by last name
+    for person in sorted(all_people.values(), key=name.sort_on_last):
+        full_name = name.full(person)
         print(full_name.replace('~',' ')) 
-
 
 if __name__ == '__main__':
     main(parse_args())

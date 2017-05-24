@@ -23,6 +23,9 @@ def last(person):
             last_name += format(name) + ' '
     return last_name.rstrip()
 
-    
+def sort_on_last(person):
+    last_name = last(person)
+    return last_name.lower()
+
 def format(name):
     return name.render_as('text') 
