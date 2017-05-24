@@ -13,7 +13,15 @@ def full(person):
         for name in person.rich_last_names:
             full_name += format(name) + ' '
     
-    return full_name
+    return full_name.rstrip()
+
+
+def last(person):
+    last_name = ''
+    if person.last_names:
+        for name in person.rich_last_names:
+            last_name += format(name) + ' '
+    return last_name.rstrip()
 
     
 def format(name):

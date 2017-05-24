@@ -21,20 +21,25 @@ def parse_args(arg_list=None):
             type=cats.abs_existing_file,
             help='A bibtex file to collect collaborators from.')
     
-    volume = parser.add_mutually_exclusive_group()
-    volume.add_argument("-v", "--verbose", help="Increase the output verbosity", action="store_true")
-    volume.add_argument("-q", "--quiet",   help="Run silently",                  action="store_true")
+    #volume = parser.add_mutually_exclusive_group()
+    #volume.add_argument("-v", "--verbose", help="Increase the output verbosity", action="store_true")
+    #volume.add_argument("-q", "--quiet",   help="Run silently",                  action="store_true")
 
     return parser.parse_args(arg_list)
 
 
 def main(args):
     bib = parse_file(args.bibtex)
-    
+  
+    all_people = {}
     for key, entry in six.iteritems(bib.entries):
         for person in entry.persons['author']:
-            print(name.full(person))
-    
+            all_people[name.last(person)] = person
+            
+    for key in sorted(all_people):
+        full_name = name.full(all_people[key])
+        print(full_name.replace('~',' ')) 
+
 
 if __name__ == '__main__':
     main(parse_args())
