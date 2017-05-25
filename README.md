@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/jhkennedy/collabMe.png?label=ready&title=Ready)](https://waffle.io/jhkennedy/collabMe?utm_source=badge)
 CollabMe
 ========
 
