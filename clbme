@@ -24,7 +24,7 @@ def parse_args(arg_list=None):
             type=cats.abs_existing_file,
             help='A bibtex file to collect collaborators from.')
     parser.add_argument('-m', '--max_months', 
-            type=int,
+            type=cats.positive_int,
             help='Limit time interval to go back to (e.g., NSF: 48 months)')
     parser.add_argument('-n', '--name',
             help='Your name to find your co-authors')
