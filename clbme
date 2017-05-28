@@ -4,14 +4,15 @@ Get all your collaborators.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-
 import six
+
+import os
+import sys
 import argparse
 
-from pybtex.database import parse_file,Person
-
 from datetime import date
-import sys
+
+from pybtex.database import parse_file,Person
 
 from collabme.util import custom_argparse_types as cats
 from collabme import name
@@ -23,20 +24,38 @@ def parse_args(arg_list=None):
     parser.add_argument('-b', '--bibtex', 
             type=cats.abs_existing_file,
             help='A bibtex file to collect collaborators from.')
-    parser.add_argument('-m', '--max_months', 
-            type=cats.positive_int,
-            help='Limit time interval to go back to (e.g., NSF: 48 months)')
     parser.add_argument('-n', '--name',
             help='Your name to find your co-authors')
+    
+    paleo = parser.add_mutually_exclusive_group()
+    paleo.add_argument('-m', '--max_months', 
+            type=cats.positive_int,
+            help=' '.join(['Limit the search interval to the past MAX_MONTHS (e.g., NSF: 48 months).', 
+                           'Note: this will be rounded to UP the nearest year because citation',
+                           'managers only reliably store publication year.']))
+    paleo.add_argument('-y', '--max_years', 
+            type=cats.positive_int,
+            help='Limit the search interval to the past MAX_YEARS (e.g., NSF: 4 years).')
+
     #volume = parser.add_mutually_exclusive_group()
     #volume.add_argument("-v", "--verbose", help="Increase the output verbosity", action="store_true")
     #volume.add_argument("-q", "--quiet",   help="Run silently",                  action="store_true")
+    
+    args = parser.parse_args(arg_list)
+    
+    current_year = date.today().year  
+    if args.max_months:
+        args.search_limit = current_year + (-args.max_months//12)  # // rounds down
+    elif args.max_years:
+        args.search_limit = current_year - args.max_years
+    else:
+        args.search_limit = 0
 
-    return parser.parse_args(arg_list)
+    return args
+
 
 def main(args):
     bib = parse_file(args.bibtex)
-    year = date.today().year  
 
     me = Person(args.name)
 
@@ -60,7 +79,7 @@ def main(args):
         #add the co-authors to the output list
         if flag:
             #do that only for the minimum number of months required
-            if ((year - int(entry.fields['year'][:4]))*12 <= args.max_months):
+            if int(entry.fields['year']) >= args.search_limit:
                 for person in entry.persons['author']:
                     all_people[name.full(person)] = person
 
