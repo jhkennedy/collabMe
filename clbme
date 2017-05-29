@@ -4,17 +4,17 @@ Get all your collaborators.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-
 import six
+
+import os
+import sys
 import argparse
 
 from pybtex.database import parse_file,Person
 
-from datetime import date
-import sys
-
 from collabme.util import custom_argparse_types as cats
 from collabme import name
+from collabme import time
 
 def parse_args(arg_list=None):
     parser = argparse.ArgumentParser(description=__doc__,
@@ -22,47 +22,65 @@ def parse_args(arg_list=None):
 
     parser.add_argument('-b', '--bibtex', 
             type=cats.abs_existing_file,
-            help='A bibtex file to collect collaborators from.')
-    parser.add_argument('-m', '--max_months', 
-            type=int,
-            help='Limit time interval to go back to (e.g., NSF: 48 months)')
-    parser.add_argument('-n', '--name',
-            help='Your name to find your co-authors')
+            nargs='*',
+            help='BibTeX/BibTeXML files to collect collaborators from.')
+    
+    parser.add_argument('-n', '--last-name',
+            type=Person,
+            help=' '.join(['Only use entries that include your last name. Warning: if you have a',
+                           'common last name, this may pick up duplicate entries.']))
+    
+    paleo = parser.add_mutually_exclusive_group()
+    paleo.add_argument('-m', '--max-months', 
+            type=cats.positive_int,
+            help=' '.join(['Limit the search interval to the past MAX_MONTHS (e.g., NSF: 48 months).', 
+                           'Note: this will be rounded to UP the nearest year because citation',
+                           'managers only reliably store publication year.']))
+    paleo.add_argument('-y', '--max-years', 
+            type=cats.positive_int,
+            help='Limit the search interval to the past MAX_YEARS (e.g., NSF: 4 years).')
+
     #volume = parser.add_mutually_exclusive_group()
     #volume.add_argument("-v", "--verbose", help="Increase the output verbosity", action="store_true")
     #volume.add_argument("-q", "--quiet",   help="Run silently",                  action="store_true")
+    
+    args = parser.parse_args(arg_list)
+    
+    if not args.bibtex:
+        print("\nWAIT! You didn't give me anything to search.\n")
+        parse_args(['-h'])
 
-    return parser.parse_args(arg_list)
+    if args.max_months:
+        args.search_limit = time.current_year + (-args.max_months//12)  # // rounds down
+    elif args.max_years:
+        args.search_limit = time.current_year - args.max_years
+    else:
+        args.search_limit = 0
+
+    return args
+
 
 def main(args):
-    bib = parse_file(args.bibtex)
-    year = date.today().year  
-
-    me = Person(args.name)
-
-    #NOTE: using a dict here ensures uniqueness of full names
     all_people = {}
-    for key, entry in six.iteritems(bib.entries):
-        #first, make sure that we are a co-author with these people
-        #There must be a more efficient way than this
-        flag = False
-        
-        #wrap this into a try except, in case your bib file contains
-        #entries with no authors (e.g. monitored folders do that)
-        try:
-            for person in entry.persons.values()[0]:
-                if me.last_names == person.last_names:
-                    flag = True
-        except IndexError:
-            continue         
+    for file_ in args.bibtex:
+        bib = parse_file(file_)
 
-        #if our name is in the list of authors for that paper
-        #add the co-authors to the output list
-        if flag:
-            #do that only for the minimum number of months required
-            if ((year - int(entry.fields['year'][:4]))*12 <= args.max_months):
-                for person in entry.persons['author']:
-                    all_people[name.full(person)] = person
+        #NOTE: using a dict here ensures uniqueness of full names
+        for key, entry in six.iteritems(bib.entries):
+            if time.clean_year(entry.fields['year']) >= args.search_limit:
+                entry_people = {}
+                for person_type_list in six.itervalues(entry.persons):
+                    for person in person_type_list:
+                        entry_people[name.full(person)] = person
+               
+                if args.last_name:
+                    for person in six.itervalues(entry_people):
+                        if name.sort_on_last(args.last_name) == name.sort_on_last(person):
+                            break
+                    else:
+                        # entry people loop fell through without finding me
+                        entry_people = {}
+                all_people.update(entry_people)
 
     #NOTE: Sort by last name
     for person in sorted(all_people.values(), key=name.sort_on_last):
