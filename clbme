@@ -46,6 +46,10 @@ def parse_args(arg_list=None):
     
     args = parser.parse_args(arg_list)
     
+    if not args.bibtex:
+        print("\nWAIT! You didn't give me anything to search.\n")
+        parse_args(['-h'])
+
     if args.max_months:
         args.search_limit = time.current_year + (-args.max_months//12)  # // rounds down
     elif args.max_years:
