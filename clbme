@@ -22,7 +22,8 @@ def parse_args(arg_list=None):
 
     parser.add_argument('-b', '--bibtex', 
             type=cats.abs_existing_file,
-            help='A bibtex file to collect collaborators from.')
+            nargs='*',
+            help='BibTeX/BibTeXML files to collect collaborators from.')
     
     parser.add_argument('-n', '--last-name',
             type=Person,
@@ -56,25 +57,26 @@ def parse_args(arg_list=None):
 
 
 def main(args):
-    bib = parse_file(args.bibtex)
-
-    #NOTE: using a dict here ensures uniqueness of full names
     all_people = {}
-    for key, entry in six.iteritems(bib.entries):
-        if time.clean_year(entry.fields['year']) >= args.search_limit:
-            entry_people = {}
-            for person_type_list in six.itervalues(entry.persons):
-                for person in person_type_list:
-                    entry_people[name.full(person)] = person
-           
-            if args.last_name:
-                for person in six.itervalues(entry_people):
-                    if args.last_name.last_names == person.last_names:
-                        break
-                else:
-                    # entry people loop fell through without finding me
-                    entry_people = {}
-            all_people.update(entry_people)
+    for file_ in args.bibtex:
+        bib = parse_file(file_)
+
+        #NOTE: using a dict here ensures uniqueness of full names
+        for key, entry in six.iteritems(bib.entries):
+            if time.clean_year(entry.fields['year']) >= args.search_limit:
+                entry_people = {}
+                for person_type_list in six.itervalues(entry.persons):
+                    for person in person_type_list:
+                        entry_people[name.full(person)] = person
+               
+                if args.last_name:
+                    for person in six.itervalues(entry_people):
+                        if name.sort_on_last(args.last_name) == name.sort_on_last(person):
+                            break
+                    else:
+                        # entry people loop fell through without finding me
+                        entry_people = {}
+                all_people.update(entry_people)
 
     #NOTE: Sort by last name
     for person in sorted(all_people.values(), key=name.sort_on_last):

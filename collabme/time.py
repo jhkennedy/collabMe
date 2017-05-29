@@ -13,7 +13,7 @@ def clean_year(year_string):
                 year = current_year
                 break
         else:
-            # alts loopfell through without finding a suitable alt
+            # alts loop fell through without finding a suitable alt
             raise E
 
     return year
